@@ -12,12 +12,12 @@ using namespace std;
 
 bool is_prime(int n)
 {   bool flag=true;
-	for (int i=5;i<=(sqrt(n)+1);i=i+2)
+    for (int i=5;i<=(sqrt(n)+1);i=i+2)
     {
-		if (n%i==0)
+        if (n%i==0)
         {
-		    flag=false;
-		    return flag;
+            flag=false;
+            return flag;
         }
 
     }
@@ -73,10 +73,10 @@ void merge(int *prime1,int *prime2,int *sorted_array,int n)
 int main()
 {
 
-	pid_t pid;
-	int c1=0;int c2=0;
-	int pipe_p_c1[2],pipe_c1_p[2],pipe_p_c2[2],pipe_c2_p[2];
-	int n;
+    pid_t pid;
+    int c1=0;int c2=0;
+    int pipe_p_c1[2],pipe_c1_p[2],pipe_p_c2[2],pipe_c2_p[2];
+    int n;
     printf("Enter N ");
     scanf("%d",&n);
     int prime1[n],prime2[n],sorted_array[n]; 
@@ -84,7 +84,7 @@ int main()
     int a=0;
     int b=0;
 
-	if(pipe(pipe_p_c1)<0||pipe(pipe_c1_p)<0) 
+    if(pipe(pipe_p_c1)<0||pipe(pipe_c1_p)<0) 
     {
         printf("Error in creating a pipe\n");
         exit(1);
@@ -103,16 +103,16 @@ int main()
     sorted_array[0]=2;sorted_array[1]=3;sorted_array[2]=5;sorted_array[3]=7;sorted_array[4]=11;
 
 
-	pid=fork(); c1 = (int) pid;
+    pid=fork(); c1 = (int) pid;
 
     if (c1!=0) 
     {
-    	pid=fork();c2 = (int) pid;
+        pid=fork();c2 = (int) pid;
     }
 
     if ((c1<0)||(c2<0)) 
     {
-    	printf("Error in forking\n");
+        printf("Error in forking\n");
         exit(1);
     }
 
@@ -131,10 +131,10 @@ int main()
         close(pipe_c2_p[1]);
 
         bool pipe_number=0;
-    	for(int j=13;j<(n+1);j++)
-    	{  
-    		if((j%2!=0)&&(j%3!=0)&&(j%5!=0)&&(j%7!=0)&&(j%11!=0))
-    		{ 
+        for(int j=13;j<(n+1);j++)
+        {  
+            if((j%2!=0)&&(j%3!=0)&&(j%5!=0)&&(j%7!=0)&&(j%11!=0))
+            { 
                 if (pipe_number==0)
                 {   
                     write(pipe_p_c1[1],&j,sizeof(int));
@@ -146,13 +146,13 @@ int main()
                     write(pipe_p_c2[1],&j,sizeof(int));
                     pipe_number=0;
                 }
-			
-    		}
+            
+            }
 
-    	}
-    	int term=0;
-    	write(pipe_p_c1[1],&term,sizeof(int));
-    	close(pipe_p_c1[1]);
+        }
+        int term=0;
+        write(pipe_p_c1[1],&term,sizeof(int));
+        close(pipe_p_c1[1]);
 
         write(pipe_p_c2[1],&term,sizeof(int));
         close(pipe_p_c2[1]);
@@ -197,12 +197,12 @@ int main()
         close(pipe_p_c1[1]);
         close(pipe_c1_p[0]);
         int array_index=0;
-//    	printf("Entering Child1\n");
+//      printf("Entering Child1\n");
 
-    	while(1)
-    	{   
+        while(1)
+        {   
             read(pipe_p_c1[0],&a,sizeof(int));
-        	if(a==0) break;
+            if(a==0) break;
 
             if (is_prime(a))
             {
@@ -210,7 +210,7 @@ int main()
                 array_index++;
             }
 
-    	}
+        }
 //        printf("Exiting Loop1\n");
         close(pipe_p_c1[0]);
         write(pipe_c1_p[1],prime1,n*sizeof(int));
