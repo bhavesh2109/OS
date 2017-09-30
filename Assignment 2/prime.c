@@ -137,7 +137,7 @@ int main()
         close(pipe_c2_p[1]);
 
         bool pipe_number=0;
-        for(int j=13;j<(n+1);j++)
+        for(int j=13;j<=n;j=j+2)
         {  
             if((j%2!=0)&&(j%3!=0)&&(j%5!=0)&&(j%7!=0)&&(j%11!=0))
             { 
