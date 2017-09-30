@@ -30,11 +30,12 @@ int main()
 
 	pid_t pid;
 	int c1,c2=0;
-	int pipe_p_c1[2];
-    int pipe_c1_p[2];
+	int pipe_p_c1[2],pipe_c1_p[2],pipe_p_c2[2],pipe_c2_p[2];
 	int n=1002;
-    int prime1[n];
+    int prime1[n],prime2[n]; 
+
     int a=0;
+    int b=0;
 
 	pipe(pipe_p_c1);
     pipe(pipe_c1_p);
@@ -42,15 +43,17 @@ int main()
     for (int i=0;i<n;i++)
     {
         prime1[i]=0;
+        prime2[i]=0;
     }
 
 
 
 	pid=fork(); c1 = (int) pid;
 
- //   if (c1!=0) {
-   // 	pid=fork();c2 = (int) pid;
-    //}
+    if (c1!=0) 
+    {
+    	pid=fork();c2 = (int) pid;
+    }
 
     if ((c1<0)||(c2<0)) 
     {
@@ -66,6 +69,8 @@ int main()
     //c2==0 indicates a child process and c2!=0 indicates parent
     if(c1!=0)
     {   close(pipe_p_c1[0]);
+        close(pipe_p_c2[0]);
+
         bool pipe_number=0;
     	for(int j=11;j<(n+1);j++)
     	{  
@@ -73,15 +78,18 @@ int main()
     		{   
                 if (pipe_number==0)
                 {
-                    write(pipe_p_c1[1],&j,4);
-                    //pipe_number=1;
+                    write(pipe_p_c1[1],&j,sizeof(int));
+                    pipe_number=1;
+                    continue;
                 }
-/*                if (pipe_number==1)
+
+               if (pipe_number==1)
                 {
-                    write(pipe_p_21[1],&j,4);
+                    write(pipe_p_c2[1],&j,sizeof(int));
                     pipe_number=0;
+                    continue;
                 }
-*/			
+			
     		}
 
     	}
@@ -89,24 +97,34 @@ int main()
     	write(pipe_p_c1[1],&i,sizeof(int));
     	close(pipe_p_c1[1]);
 
+        write(pipe_p_c2[1],&i,sizeof(int));
+        close(pipe_p_c2[1]);
+
         wait(NULL);
         close(pipe_c1_p[1]);
-        read(pipe_c1_p[0],prime1,n*sizeof(int));
+        close(pipe_c2_p[1]);
+        close(pipe_c1_p[0]);
+        close(pipe_c2_p[0]);
 
-        for(int i=0;prime1[i]!=0;i++)
+
+/*        for(int i=0;prime1[i]!=0;i++)
         {
             cout<<prime1[i]<<endl;
         }
-
+*/        
 
     }
 
-    if (c1==0)
-    {   
+    if (c1==0&&c2==0)
+    {   close(pipe_p_c2[0]);
+        close(pipe_p_c2[1]);
+        close(pipe_c2_p[0]);
+        close(pipe_c2_p[1]);
+
         close(pipe_p_c1[1]);
         close(pipe_c1_p[0]);
         int array_index=0;
-    	printf("Entering Child\n");
+    	printf("Entering Child1\n");
 
     	while(1)
     	{   read(pipe_p_c1[0],&a,sizeof(int));
@@ -121,15 +139,47 @@ int main()
             }
 
     	}
-        printf("Exiting Loop\n");
+        printf("Exiting Loop1\n");
         close(pipe_p_c1[0]);
         write(pipe_c1_p[1],prime1,n*sizeof(int));
         close(pipe_c1_p[1]);
 
-        printf("Exiting Child\n");
+        printf("Exiting Child1\n");
 
     }
 
+    if (c1!=0&&c2==0)
+    {   close(pipe_p_c1[0]);
+        close(pipe_p_c1[1]);
+        close(pipe_c1_p[0]);
+        close(pipe_c1_p[1]);
+
+        close(pipe_p_c2[1]);
+        close(pipe_c2_p[0]);
+        int array_index=0;
+        printf("Entering Child2\n");
+
+        while(1)
+        {   read(pipe_p_c1[0],&a,sizeof(int));
+            if(b==0) break;
+            cout<<a<<endl;
+
+            if (is_prime(b))
+            {
+                prime1[array_index]=b;
+                array_index++;
+                cout<<b<<endl;
+            }
+
+        }
+        printf("Exiting Loop2\n");
+        close(pipe_p_c2[0]);
+        write(pipe_c2_p[1],prime2,n*sizeof(int));
+        close(pipe_c2_p[1]);
+
+        printf("Exiting Child2\n");
+
+    }
 
 
 
