@@ -97,8 +97,16 @@ int main()
         prime1[i]=0;
         prime2[i]=0;
         sorted_array[i]=0;
-    }    
-    sorted_array[0]=2;sorted_array[1]=3;sorted_array[2]=5;sorted_array[3]=7;sorted_array[4]=11;
+    } 
+
+    if (n==2){sorted_array[0]=2;} 
+    
+    else if(n==3||n==4){sorted_array[0]=2;sorted_array[1]=3;}
+    else if(n==5||n==6){sorted_array[0]=2;sorted_array[1]=3;sorted_array[2]=5;}
+    else if(n>=7&&n<11){sorted_array[0]=2;sorted_array[1]=3;sorted_array[2]=5;sorted_array[3]=7;}
+    else if(n>=11){sorted_array[0]=2;sorted_array[1]=3;sorted_array[2]=5;sorted_array[3]=7;sorted_array[4]=11;}
+
+
 
 
     pid=fork(); c1 = (int) pid;
