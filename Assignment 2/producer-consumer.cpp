@@ -33,16 +33,17 @@ vector<pthread_cond_t> condvars(5);
 pthread_cond_t parent_cv;
 
 int min_cycle[3] = {1, 1, 1};	//To store minimum cycle for which data is present in P
-int generated_num = 1, thread_count = 5; 
+int generated_num = 1;
 int inputs[5];
 
 vector<produce> overflow[3];
 int consume[2] = {0,0}; //To store extra that consumer must consume
 int buffer_size;
 
-int parent_signal = 0;
-bool thread_recieved_signal[5] = {0,0,0,0,0};
-bool parent_sent_signal = 0;
+
+bool parent_signal[5] = {0,0,0,0,0}; //To check if threads have accepted input
+bool thread_recieved_signal[5] = {0,0,0,0,0}; //To check if threads used the dummy signal sent by parent
+bool parent_sent_signal = 0; //To check if parent sent false signal yet
 
 void display(){
 
@@ -81,10 +82,6 @@ void *producer(void *t){
 
 	while(1){
 
-		pthread_mutex_lock(&print_mutex);
-		cout<<"Producer "<<my_id<<" waiting for signal"<<endl;
-		pthread_mutex_unlock(&print_mutex);
-
 		sync_thread[my_id].down();
 
 		pthread_mutex_lock(&total_mutex);
@@ -97,15 +94,12 @@ void *producer(void *t){
 			overflow[my_id].push_back(produce(cycle, generated_num+i));
 		}
 
-		parent_signal++;
+		parent_signal[my_id] = 1;
 
 		num = overflow[my_id].size();
 
 		generated_num += num;
-
-		pthread_mutex_lock(&print_mutex);
-		cout<<"Producer "<<my_id<<" created "<<num<<" numbers"<<endl;
-		pthread_mutex_unlock(&print_mutex);
+		
 
 		pthread_mutex_unlock(&total_mutex);
 	
@@ -115,23 +109,16 @@ void *producer(void *t){
 
 			pthread_mutex_lock(&total_mutex);
 
+			//To handle dummy signal
 			if(consume[0] == 0 && consume[1] == 0 && parent_sent_signal == 1 && buffer.size() >= buffer_size){
 				
-				pthread_mutex_lock(&print_mutex);
-				cout<<"Producer "<<my_id<<" terminating prematurely"<<endl;
-				pthread_mutex_unlock(&print_mutex);
-
 				thread_recieved_signal[my_id] = 1;
 				pthread_mutex_unlock(&total_mutex);
 				break;
 			}
 			
-
+			//To ensure lower cycle data is put into buffer first
 			if( ((min_cycle[my_id] <= min_cycle[(my_id+1)%3]) || !overflow[(my_id+1)%3].size()) && ((min_cycle[my_id] <= min_cycle[(my_id+2)%3]) || !overflow[(my_id+2)%3].size())){
-
-				pthread_mutex_lock(&print_mutex);
-				cout<<"Producer "<<my_id<<" writing "<<overflow[my_id].front().num<<endl;
-				pthread_mutex_unlock(&print_mutex);
 
 				buffer.push_back(overflow[my_id].front().num);
 
@@ -168,12 +155,7 @@ void *consumer(void *t){
 	int num;
 
 	while(1){
-
-
-		pthread_mutex_lock(&print_mutex);
-		cout<<"Consumer "<<my_id<<" waiting for signal"<<endl;
-		pthread_mutex_unlock(&print_mutex);
-
+		
 		sync_thread[my_id].down();
 
 		pthread_mutex_lock(&total_mutex);
@@ -182,7 +164,7 @@ void *consumer(void *t){
 		consume[my_id-3] += num;
 		num = consume[my_id-3];
 
-		parent_signal++; 
+		parent_signal[my_id] = 1; 
 
 		pthread_mutex_unlock(&total_mutex);
 
@@ -192,12 +174,9 @@ void *consumer(void *t){
 
 			pthread_mutex_lock(&total_mutex);
 
-			if(overflow[0].size() == 0 && overflow[1].size() == 0 && overflow[2].size() == 0 && parent_sent_signal == 1 && buffer_size == 0){
+			//To handle dummy signal
+			if(overflow[0].size() == 0 && overflow[1].size() == 0 && overflow[2].size() == 0 && parent_sent_signal == 1 && buffer.size() == 0){
 				
-				pthread_mutex_lock(&print_mutex);
-				cout<<"Consumer "<<my_id<<" terminating prematurely";
-				pthread_mutex_unlock(&print_mutex);
-
 				thread_recieved_signal[my_id] = 1;
 				pthread_mutex_unlock(&total_mutex);
 				break;
@@ -208,11 +187,6 @@ void *consumer(void *t){
 			empty_count.up();
 
 			consume[my_id-3]--;
-
-			pthread_mutex_lock(&print_mutex);
-			cout<<"Consumer "<<my_id<<" done"<<endl;
-			pthread_mutex_unlock(&print_mutex);
-
 
 			pthread_mutex_unlock(&total_mutex);
 		}
@@ -227,7 +201,7 @@ void *consumer(void *t){
 
 bool producers_completed(){
 
-	if(overflow[0].size() == 0 && overflow[1].size() ==0 && overflow[2].size() ==0 && parent_signal == 5){
+	if(overflow[0].size() == 0 && overflow[1].size() ==0 && overflow[2].size() ==0 && parent_signal[0] == 1 && parent_signal[1] == 1 && parent_signal[2] == 1){
 		return 1;
 	}
 
@@ -237,7 +211,7 @@ bool producers_completed(){
 
 bool consumers_completed(){
 
-	if(consume[0] == 0 && consume[1] == 0 && parent_signal == 5){
+	if(consume[0] == 0 && consume[1] == 0 && parent_signal[3] == 1 && parent_signal[4] == 1){
 		return 1;
 	}
 
@@ -270,6 +244,8 @@ int main(){
 
 	while(1){
 
+
+		//Accepting inpus
 		pthread_mutex_lock(&print_mutex);
 		cout<<"Input: ";
 		pthread_mutex_unlock(&print_mutex);
@@ -289,7 +265,7 @@ int main(){
 			inputs[i] = n;
 		}
 
-		
+		//Syncing threads with parent		
 		for(int i = 0; i<5; i++){
 			
 			sync_thread[i].up();
@@ -297,23 +273,19 @@ int main(){
 		
 
 		pthread_mutex_lock(&total_mutex);
-
-		pthread_mutex_lock(&print_mutex);
-		cout<<"Parent waiting for signal"<<endl;
-		pthread_mutex_unlock(&print_mutex);
-
+		
+		//To check for premature/complete completion of threads
 		while(!producers_completed() && !consumers_completed()){
 			pthread_cond_wait(&parent_cv, &total_mutex);
 		}
-
-		pthread_mutex_lock(&print_mutex);
-		cout<<"Parent recieved signal"<<endl;
-		pthread_mutex_unlock(&print_mutex);
-
-		parent_signal = 0;
+		
+		for(int i =0; i<5; i++){
+			parent_signal[i] = 0;
+		}
 
 		parent_sent_signal = 1;
 
+		//Dummy signals
 		filled_count.up();
 		filled_count.up();
 		empty_count.up();
@@ -322,12 +294,12 @@ int main(){
 
 		pthread_mutex_unlock(&total_mutex);
 
-		
+		//Wair for completion of all threads
 		for(int i = 0; i<5; i++){
 			sync_parent[i].down();
 		}
-		//All threads have completed
 
+		//Negate dummy signal that wasn't received
 		for(int i = 0; i<5; i++){
 
 			if(i<3 && thread_recieved_signal[i] == 0){
@@ -344,8 +316,8 @@ int main(){
 
 		parent_sent_signal = 0;
 
+		//Display buffer and overflow
 		display();
-		//edit due to parent_sent_signal and parent_signal
 
 	}	
 
