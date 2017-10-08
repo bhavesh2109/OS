@@ -1,0 +1,18 @@
+This is the readme for question 3.
+
+semaphore.cpp semaphore.h producer-consumer.cpp are the files required
+to run the code. 
+
+please run the file as: 
+g++ -pthread semaphore.cpp producer-consumer.cpp
+./a.out
+
+Inputs are as follow:
+<Buffer size>
+<p1> <p2> <p3> <c1> <c2>
+...
+...
+...
+-1 to end code
+
+
